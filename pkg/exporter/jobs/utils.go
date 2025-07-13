@@ -15,6 +15,7 @@ const (
 	LabelSymbol       string = "symbol"
 	LabelTo           string = "to"
 	LabelTokenID      string = "token_id"
+	LabelTopic        string = "topic"
 )
 
 func hexStringToFloat64(hexStr string) float64 {
@@ -44,4 +45,17 @@ func hexStringToString(hexStr string) (string, error) {
 	last = bytes.TrimSpace(last)
 
 	return string(last), nil
+}
+
+func hexStringToInt64(hexStr string) int64 {
+
+	f := new(big.Int)
+	f.SetString(hexStr[2:], 16)
+	return f.Int64()
+}
+
+func int64ToHexString(i int64) string {
+	f := new(big.Int)
+	f.SetInt64(i)
+	return "0x" + f.Text(16)
 }

@@ -17,11 +17,12 @@ type Config struct {
 }
 
 type GlobalConfig struct {
-	LoggingLevel  string            `yaml:"logging" default:"warn"`
-	MetricsAddr   string            `yaml:"metricsAddr" default:":9090"`
-	Namespace     string            `yaml:"namespace" default:"eth_address"`
-	CheckInterval time.Duration     `yaml:"checkInterval" default:"15s"`
-	Labels        map[string]string `yaml:"labels"`
+	LoggingLevel   string            `yaml:"logging" default:"warn"`
+	MetricsAddr    string            `yaml:"metricsAddr" default:":9090"`
+	Namespace      string            `yaml:"namespace" default:"eth_address"`
+	CheckInterval  time.Duration     `yaml:"checkInterval" default:"15s"`
+	BlockIncrement int               `yaml:"blockIncrement" default:"200"`
+	Labels         map[string]string `yaml:"labels"`
 }
 
 // ExecutionNode represents a single ethereum execution client.
@@ -38,6 +39,7 @@ type Addresses struct {
 	ERC1155           []*jobs.AddressERC1155           `yaml:"erc1155"`
 	UniswapPair       []*jobs.AddressUniswapPair       `yaml:"uniswapPair"`
 	ChainlinkDataFeed []*jobs.AddressChainlinkDataFeed `yaml:"chainlinkDataFeed"`
+	Event             []*jobs.AddressEvent             `yaml:"event"`
 }
 
 func (c *Config) Validate() error {
@@ -97,6 +99,16 @@ func (c *Config) Validate() error {
 		// Check that all addresses have different names
 		if _, ok := duplicates[u.Name]; ok {
 			return fmt.Errorf("there's a duplicate chainlink data feed addresses with the same name: %s", u.Name)
+		}
+
+		duplicates[u.Name] = struct{}{}
+	}
+
+	duplicates = make(map[string]struct{})
+	for _, u := range c.Addresses.Event {
+		// Check that all addresses have different names
+		if _, ok := duplicates[u.Name]; ok {
+			return fmt.Errorf("there's a duplicate event addresses with the same name: %s", u.Name)
 		}
 
 		duplicates[u.Name] = struct{}{}

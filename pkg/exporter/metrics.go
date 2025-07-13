@@ -23,12 +23,13 @@ type metrics struct {
 	erc1155Metrics           jobs.ERC1155
 	uniswapPairMetrics       jobs.UniswapPair
 	chainlinkDataFeedMetrics jobs.ChainlinkDataFeed
+	eventMetrics             jobs.Event
 
 	enabledJobs map[string]bool
 }
 
 // NewMetrics creates a new execution Metrics instance
-func NewMetrics(client api.ExecutionClient, log logrus.FieldLogger, checkInterval time.Duration, namespace string, constLabels map[string]string, addresses *Addresses) Metrics {
+func NewMetrics(client api.ExecutionClient, log logrus.FieldLogger, checkInterval time.Duration, blockIncrement int, namespace string, constLabels map[string]string, addresses *Addresses) Metrics {
 	m := &metrics{
 		log:                      log,
 		accountMetrics:           jobs.NewAccount(client, log, checkInterval, namespace, constLabels, addresses.Account),
@@ -37,6 +38,7 @@ func NewMetrics(client api.ExecutionClient, log logrus.FieldLogger, checkInterva
 		erc1155Metrics:           jobs.NewERC1155(client, log, checkInterval, namespace, constLabels, addresses.ERC1155),
 		uniswapPairMetrics:       jobs.NewUniswapPair(client, log, checkInterval, namespace, constLabels, addresses.UniswapPair),
 		chainlinkDataFeedMetrics: jobs.NewChainlinkDataFeed(client, log, checkInterval, namespace, constLabels, addresses.ChainlinkDataFeed),
+		eventMetrics:             jobs.NewEvent(client, log, checkInterval, blockIncrement, namespace, constLabels, addresses.Event),
 
 		enabledJobs: make(map[string]bool),
 	}
@@ -67,6 +69,10 @@ func NewMetrics(client api.ExecutionClient, log logrus.FieldLogger, checkInterva
 		m.enabledJobs[m.chainlinkDataFeedMetrics.Name()] = true
 	}
 
+	if len(addresses.Event) > 0 {
+		m.enabledJobs[m.eventMetrics.Name()] = true
+	}
+
 	return m
 }
 
@@ -93,6 +99,10 @@ func (m *metrics) StartAsync(ctx context.Context) {
 
 	if m.enabledJobs[m.chainlinkDataFeedMetrics.Name()] {
 		go m.chainlinkDataFeedMetrics.Start(ctx)
+	}
+
+	if m.enabledJobs[m.eventMetrics.Name()] {
+		go m.eventMetrics.Start(ctx)
 	}
 
 	m.log.Info("Started metrics exporter jobs")

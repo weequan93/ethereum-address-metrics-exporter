@@ -17,6 +17,22 @@ type ExecutionClient interface {
 	ETHCall(transaction *ETHCallTransaction, block string) (string, error)
 	// ETHGetBalance returns the balance of the account of given address.
 	ETHGetBalance(address string, block string) (string, error)
+	// ETHGetEvent returns the event logs for a given address and topic.
+	ETHGetEvent(address string, topic string, fromBlock string, toBlock string) ([]ETHLogEntry, error)
+	// ETHGetBlockNumber returns the latest block number.
+	ETHGetBlockNumber() (string, error)
+}
+
+type ETHLogEntry struct {
+	Address          string   `json:"address"`
+	Topics           []string `json:"topics"`
+	Data             string   `json:"data"`
+	BlockNumber      string   `json:"blockNumber"`
+	TransactionHash  string   `json:"transactionHash"`
+	TransactionIndex string   `json:"transactionIndex"`
+	BlockHash        string   `json:"blockHash"`
+	LogIndex         string   `json:"logIndex"`
+	Removed          bool     `json:"removed"`
 }
 
 type ETHCallTransaction struct {
@@ -26,6 +42,13 @@ type ETHCallTransaction struct {
 	GasPrice *string `json:"gasPrice"`
 	Value    *string `json:"value"`
 	Data     *string `json:"data"`
+}
+
+type ETHLogsFilter struct {
+	FromBlock *string   `json:"fromBlock,omitempty"`
+	ToBlock   *string   `json:"toBlock,omitempty"`
+	Address   *string   `json:"address,omitempty"`
+	Topics    *[]string `json:"topics,omitempty"`
 }
 
 type executionClient struct {
@@ -163,4 +186,43 @@ func (e *executionClient) ETHGetBalance(address, block string) (string, error) {
 	}
 
 	return ethGetBalance, nil
+}
+
+func (e *executionClient) ETHGetEvent(address string, topic string, fromBlock string, toBlock string) ([]ETHLogEntry, error) {
+	params := []ETHLogsFilter{
+		{
+			FromBlock: &fromBlock,
+			ToBlock:   &toBlock,
+			Address:   &address,
+			Topics:    &[]string{topic},
+		},
+	}
+
+	rsp, err := e.post("eth_getLogs", params, 1)
+	if err != nil {
+		return nil, err
+	}
+
+	ethGetEvent := []ETHLogEntry{}
+	if err := json.Unmarshal(rsp, &ethGetEvent); err != nil {
+		return nil, err
+	}
+
+	return ethGetEvent, nil
+}
+
+func (e *executionClient) ETHGetBlockNumber() (string, error) {
+	params := []interface{}{}
+
+	rsp, err := e.post("eth_blockNumber", params, 1)
+	if err != nil {
+		return "", err
+	}
+
+	ethCall := ""
+	if err := json.Unmarshal(rsp, &ethCall); err != nil {
+		return "", err
+	}
+
+	return ethCall, nil
 }

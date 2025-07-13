@@ -123,6 +123,10 @@ addresses:
       from: eth
       to: usd
       contract: 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419
+  event:
+    - name: Example Event
+      contract: 0x4B1DB272F63E03Dd37ea45330266AC9328A66DB6
+      topic: 0x4B1D1465b14cA06e72b942F361Fd3352Aa9c5368
 ```
 
 ## Getting Started
