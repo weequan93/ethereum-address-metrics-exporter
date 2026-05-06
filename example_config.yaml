@@ -2,6 +2,7 @@ global:
   logging: "debug" # panic,fatal,warm,info,debug,trace
   metricsAddr: ":9090"
   namespace: eth_address
+  stateFile: ./ethereum-address-metrics-exporter-state.json
   # optional labels applied to all metrics
   labels:
     extra: label
@@ -65,3 +66,16 @@ addresses:
       # optional metric labels to add to this address
       labels:
         extra: label
+  # monitor transactions to a contract by input prefix. methodPrefix is optional
+  # for whole-input matching, but required when bytesArgIndex is set.
+  # bytesArgIndex is optional; when set, inputPrefix is matched against that
+  # decoded ABI bytes argument instead of the whole transaction input.
+  transactionInputPrefix:
+    - name: arbitrum_dac_batches
+      contract: 0x4B1DB272F63E03Dd37ea45330266AC9328A66DB6
+      startBlock: 123456789 # optional; first block to scan when no saved state exists
+      methodPrefix: 0xaaaaaaaa # replace with addSequencerL2BatchFromOrigin selector
+      bytesArgIndex: 1 # second argument, zero-based
+      inputPrefix: 0x30 # replace with the DAC bytes argument prefix to monitor
+      labels:
+        source: dac

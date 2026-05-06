@@ -197,3 +197,5 @@ Contributions are greatly appreciated! Pull requests will be reviewed and merged
 ```
 go run main.go --config your_config.yaml
 ```
+
+$ docker buildx build --platform linux/amd64 -t quanquanah/ethereum-address-metrics-exporter:latest --push .

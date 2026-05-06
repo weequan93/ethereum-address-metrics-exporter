@@ -16,29 +16,31 @@ type Metrics interface {
 }
 
 type metrics struct {
-	log                      logrus.FieldLogger
-	accountMetrics           jobs.Account
-	erc20Metrics             jobs.ERC20
-	erc721Metrics            jobs.ERC721
-	erc1155Metrics           jobs.ERC1155
-	uniswapPairMetrics       jobs.UniswapPair
-	chainlinkDataFeedMetrics jobs.ChainlinkDataFeed
-	eventMetrics             jobs.Event
+	log                           logrus.FieldLogger
+	accountMetrics                jobs.Account
+	erc20Metrics                  jobs.ERC20
+	erc721Metrics                 jobs.ERC721
+	erc1155Metrics                jobs.ERC1155
+	uniswapPairMetrics            jobs.UniswapPair
+	chainlinkDataFeedMetrics      jobs.ChainlinkDataFeed
+	eventMetrics                  jobs.Event
+	transactionInputPrefixMetrics jobs.TransactionInputPrefix
 
 	enabledJobs map[string]bool
 }
 
 // NewMetrics creates a new execution Metrics instance
-func NewMetrics(client api.ExecutionClient, log logrus.FieldLogger, checkInterval time.Duration, blockIncrement int, namespace string, constLabels map[string]string, addresses *Addresses) Metrics {
+func NewMetrics(client api.ExecutionClient, log logrus.FieldLogger, checkInterval time.Duration, blockIncrement int, namespace string, stateFile string, constLabels map[string]string, addresses *Addresses) Metrics {
 	m := &metrics{
-		log:                      log,
-		accountMetrics:           jobs.NewAccount(client, log, checkInterval, namespace, constLabels, addresses.Account),
-		erc20Metrics:             jobs.NewERC20(client, log, checkInterval, namespace, constLabels, addresses.ERC20),
-		erc721Metrics:            jobs.NewERC721(client, log, checkInterval, namespace, constLabels, addresses.ERC721),
-		erc1155Metrics:           jobs.NewERC1155(client, log, checkInterval, namespace, constLabels, addresses.ERC1155),
-		uniswapPairMetrics:       jobs.NewUniswapPair(client, log, checkInterval, namespace, constLabels, addresses.UniswapPair),
-		chainlinkDataFeedMetrics: jobs.NewChainlinkDataFeed(client, log, checkInterval, namespace, constLabels, addresses.ChainlinkDataFeed),
-		eventMetrics:             jobs.NewEvent(client, log, checkInterval, blockIncrement, namespace, constLabels, addresses.Event),
+		log:                           log,
+		accountMetrics:                jobs.NewAccount(client, log, checkInterval, namespace, constLabels, addresses.Account),
+		erc20Metrics:                  jobs.NewERC20(client, log, checkInterval, namespace, constLabels, addresses.ERC20),
+		erc721Metrics:                 jobs.NewERC721(client, log, checkInterval, namespace, constLabels, addresses.ERC721),
+		erc1155Metrics:                jobs.NewERC1155(client, log, checkInterval, namespace, constLabels, addresses.ERC1155),
+		uniswapPairMetrics:            jobs.NewUniswapPair(client, log, checkInterval, namespace, constLabels, addresses.UniswapPair),
+		chainlinkDataFeedMetrics:      jobs.NewChainlinkDataFeed(client, log, checkInterval, namespace, constLabels, addresses.ChainlinkDataFeed),
+		eventMetrics:                  jobs.NewEvent(client, log, checkInterval, blockIncrement, namespace, constLabels, addresses.Event),
+		transactionInputPrefixMetrics: jobs.NewTransactionInputPrefix(client, log, checkInterval, blockIncrement, namespace, stateFile, constLabels, addresses.TransactionInputPrefix),
 
 		enabledJobs: make(map[string]bool),
 	}
@@ -73,6 +75,10 @@ func NewMetrics(client api.ExecutionClient, log logrus.FieldLogger, checkInterva
 		m.enabledJobs[m.eventMetrics.Name()] = true
 	}
 
+	if len(addresses.TransactionInputPrefix) > 0 {
+		m.enabledJobs[m.transactionInputPrefixMetrics.Name()] = true
+	}
+
 	return m
 }
 
@@ -103,6 +109,10 @@ func (m *metrics) StartAsync(ctx context.Context) {
 
 	if m.enabledJobs[m.eventMetrics.Name()] {
 		go m.eventMetrics.Start(ctx)
+	}
+
+	if m.enabledJobs[m.transactionInputPrefixMetrics.Name()] {
+		go m.transactionInputPrefixMetrics.Start(ctx)
 	}
 
 	m.log.Info("Started metrics exporter jobs")

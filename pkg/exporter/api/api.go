@@ -17,10 +17,29 @@ type ExecutionClient interface {
 	ETHCall(transaction *ETHCallTransaction, block string) (string, error)
 	// ETHGetBalance returns the balance of the account of given address.
 	ETHGetBalance(address string, block string) (string, error)
+	// ETHGetBlockByNumber returns block details by block number.
+	ETHGetBlockByNumber(block string, fullTransactions bool) (*ETHBlock, error)
 	// ETHGetEvent returns the event logs for a given address and topic.
 	ETHGetEvent(address string, topic string, fromBlock string, toBlock string) ([]ETHLogEntry, error)
 	// ETHGetBlockNumber returns the latest block number.
 	ETHGetBlockNumber() (string, error)
+}
+
+type ETHBlock struct {
+	Number       string           `json:"number"`
+	Hash         string           `json:"hash"`
+	ParentHash   string           `json:"parentHash"`
+	Timestamp    string           `json:"timestamp"`
+	Transactions []ETHTransaction `json:"transactions"`
+}
+
+type ETHTransaction struct {
+	Hash        string  `json:"hash"`
+	From        string  `json:"from"`
+	To          *string `json:"to"`
+	Input       string  `json:"input"`
+	BlockHash   string  `json:"blockHash"`
+	BlockNumber string  `json:"blockNumber"`
 }
 
 type ETHLogEntry struct {
@@ -186,6 +205,29 @@ func (e *executionClient) ETHGetBalance(address, block string) (string, error) {
 	}
 
 	return ethGetBalance, nil
+}
+
+func (e *executionClient) ETHGetBlockByNumber(block string, fullTransactions bool) (*ETHBlock, error) {
+	params := []interface{}{
+		block,
+		fullTransactions,
+	}
+
+	rsp, err := e.post("eth_getBlockByNumber", params, 1)
+	if err != nil {
+		return nil, err
+	}
+
+	if string(rsp) == "null" {
+		return nil, fmt.Errorf("block not found: %s", block)
+	}
+
+	ethBlock := &ETHBlock{}
+	if err := json.Unmarshal(rsp, ethBlock); err != nil {
+		return nil, err
+	}
+
+	return ethBlock, nil
 }
 
 func (e *executionClient) ETHGetEvent(address string, topic string, fromBlock string, toBlock string) ([]ETHLogEntry, error) {

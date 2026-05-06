@@ -2,6 +2,7 @@ package exporter
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/ethpandaops/ethereum-address-metrics-exporter/pkg/exporter/jobs"
@@ -22,6 +23,7 @@ type GlobalConfig struct {
 	Namespace      string            `yaml:"namespace" default:"eth_address"`
 	CheckInterval  time.Duration     `yaml:"checkInterval" default:"15s"`
 	BlockIncrement int               `yaml:"blockIncrement" default:"200"`
+	StateFile      string            `yaml:"stateFile"`
 	Labels         map[string]string `yaml:"labels"`
 }
 
@@ -33,13 +35,14 @@ type ExecutionNode struct {
 }
 
 type Addresses struct {
-	Account           []*jobs.AddressAccount           `yaml:"account"`
-	ERC20             []*jobs.AddressERC20             `yaml:"erc20"`
-	ERC721            []*jobs.AddressERC721            `yaml:"erc721"`
-	ERC1155           []*jobs.AddressERC1155           `yaml:"erc1155"`
-	UniswapPair       []*jobs.AddressUniswapPair       `yaml:"uniswapPair"`
-	ChainlinkDataFeed []*jobs.AddressChainlinkDataFeed `yaml:"chainlinkDataFeed"`
-	Event             []*jobs.AddressEvent             `yaml:"event"`
+	Account                []*jobs.AddressAccount                `yaml:"account"`
+	ERC20                  []*jobs.AddressERC20                  `yaml:"erc20"`
+	ERC721                 []*jobs.AddressERC721                 `yaml:"erc721"`
+	ERC1155                []*jobs.AddressERC1155                `yaml:"erc1155"`
+	UniswapPair            []*jobs.AddressUniswapPair            `yaml:"uniswapPair"`
+	ChainlinkDataFeed      []*jobs.AddressChainlinkDataFeed      `yaml:"chainlinkDataFeed"`
+	Event                  []*jobs.AddressEvent                  `yaml:"event"`
+	TransactionInputPrefix []*jobs.AddressTransactionInputPrefix `yaml:"transactionInputPrefix"`
 }
 
 func (c *Config) Validate() error {
@@ -112,6 +115,34 @@ func (c *Config) Validate() error {
 		}
 
 		duplicates[u.Name] = struct{}{}
+	}
+
+	duplicates = make(map[string]struct{})
+	for _, u := range c.Addresses.TransactionInputPrefix {
+		// Check that all addresses have different names
+		if _, ok := duplicates[u.Name]; ok {
+			return fmt.Errorf("there's a duplicate transaction input prefix addresses with the same name: %s", u.Name)
+		}
+
+		if u.StartBlock != nil && *u.StartBlock < 0 {
+			return fmt.Errorf("transaction input prefix address %s has invalid startBlock: %d", u.Name, *u.StartBlock)
+		}
+
+		if u.BytesArgIndex != nil {
+			if *u.BytesArgIndex < 0 {
+				return fmt.Errorf("transaction input prefix address %s has invalid bytesArgIndex: %d", u.Name, *u.BytesArgIndex)
+			}
+
+			if strings.TrimSpace(u.MethodPrefix) == "" {
+				return fmt.Errorf("transaction input prefix address %s requires methodPrefix when bytesArgIndex is set", u.Name)
+			}
+		}
+
+		duplicates[u.Name] = struct{}{}
+	}
+
+	if len(c.Addresses.TransactionInputPrefix) > 0 && strings.TrimSpace(c.GlobalConfig.StateFile) == "" {
+		return fmt.Errorf("global.stateFile is required when addresses.transactionInputPrefix is configured")
 	}
 
 	return nil
