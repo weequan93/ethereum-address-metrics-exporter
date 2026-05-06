@@ -33,6 +33,8 @@ Ethereum Address Metrics Exporter relies entirely on a single `yaml` config file
 | global.metricsAddr | `:9090` | The address the metrics server will listen on |
 | global.namespace | `eth_address` | The prefix added to every metric |
 | global.checkInterval | `15s` | How often the service should check the addresses for balance |
+| global.blockIncrement | `200` | Maximum number of blocks a range-scanning job checks per interval |
+| global.stateFile |  | Path used to persist range-scanning job state. Required for `transactionInputPrefix`; relative paths are resolved from the config file directory |
 | global.labels[] |  | Key value pair of labels to add to every metric (optional) |
 | execution.url | `http://localhost:8545` | URL to the execution node |
 | execution.timeout | `10s` | Timeout for requests to the execution node |
@@ -69,6 +71,14 @@ Ethereum Address Metrics Exporter relies entirely on a single `yaml` config file
 | addresses.chainlinkDataFeed[].to |  | Second symbol name, will be a label on the metric |
 | addresses.chainlinkDataFeed[].contract |  | Ethereum contract address of the [chainlink data feed](https://docs.chain.link/docs/ethereum-addresses/) |
 | addresses.chainlinkDataFeed[].labels[] |  | Key value pair of labels to add to this address only (optional) |
+| addresses.transactionInputPrefix |  | List of contract transaction input prefix monitors |
+| addresses.transactionInputPrefix[].name |  | Name of the monitor, used as a label and state key |
+| addresses.transactionInputPrefix[].contract |  | Contract address to monitor |
+| addresses.transactionInputPrefix[].startBlock |  | First block to scan when no saved state exists |
+| addresses.transactionInputPrefix[].methodPrefix |  | Transaction method selector to match before input prefix checks |
+| addresses.transactionInputPrefix[].bytesArgIndex |  | Optional zero-based ABI `bytes` argument index. When set, `inputPrefix` is matched against the decoded argument |
+| addresses.transactionInputPrefix[].inputPrefix |  | Input prefix to match |
+| addresses.transactionInputPrefix[].labels[] |  | Key value pair of labels to add to this monitor only (optional) |
 
 
 ### Example
@@ -78,6 +88,7 @@ global:
   logging: "debug" # panic,fatal,warm,info,debug,trace
   metricsAddr: ":9090"
   namespace: eth_address
+  stateFile: ./data/ethereum-address-metrics-exporter-state.json
   labels:
     extra: label
 
@@ -147,9 +158,19 @@ Available as a docker image at [ethpandaops/ethereum-address-metrics-exporter](h
 
 **Quick start**
 ```
-docker run -d  --name ethereum-address-metrics-exporter -v $HOST_DIR_CHANGE_ME/config.yaml:/opt/ethereum-address-metrics-exporter/config.yaml -p 9090:9090 -p 5555:5555 -it ethpandaops/ethereum-address-metrics-exporter:latest --config /opt/ethereum-address-metrics-exporter/config.yaml;
+mkdir -p $HOST_DIR_CHANGE_ME/data
+docker run -d --name ethereum-address-metrics-exporter \
+  -v $HOST_DIR_CHANGE_ME/config.yaml:/opt/ethereum-address-metrics-exporter/config.yaml:ro \
+  -v $HOST_DIR_CHANGE_ME/data:/opt/ethereum-address-metrics-exporter/data \
+  -p 9090:9090 \
+  ethpandaops/ethereum-address-metrics-exporter:latest \
+  --config /opt/ethereum-address-metrics-exporter/config.yaml;
 docker logs -f ethereum-address-metrics-exporter;
 ```
+
+For Docker Compose, copy `docker-compose.example.yml` and keep the `./data` bind mount if `global.stateFile` is relative, for example `./data/ethereum-address-metrics-exporter-state.json`.
+
+For `transactionInputPrefix`, `*_transaction_input_prefix_transactions_total` includes a `matched` label and will increase for method-matching transactions under `matched="false"` when the decoded input prefix does not match. Use `*_transaction_input_prefix_matched_transactions_total` or filter `matched="true"` when you only want confirmed prefix matches.
 
 ### Kubernetes via Helm
 [Read more](https://github.com/skylenet/ethereum-helm-charts/tree/master/charts/ethereum-address-metrics-exporter)

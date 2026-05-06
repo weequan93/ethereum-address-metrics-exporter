@@ -19,6 +19,7 @@ type TransactionInputPrefix struct {
 	client                                     api.ExecutionClient
 	log                                        logrus.FieldLogger
 	TransactionInputPrefixTransactions         prometheus.CounterVec
+	TransactionInputPrefixMatchedTransactions  prometheus.CounterVec
 	TransactionInputPrefixLastTransactionBlock prometheus.GaugeVec
 	TransactionInputPrefixLastCheckedBlock     prometheus.GaugeVec
 	TransactionInputPrefixError                prometheus.CounterVec
@@ -80,6 +81,15 @@ func NewTransactionInputPrefix(client api.ExecutionClient, log logrus.FieldLogge
 			},
 			labelsFromMap(transactionLabelsMap),
 		),
+		TransactionInputPrefixMatchedTransactions: *prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace:   namespace,
+				Name:        "matched_transactions_total",
+				Help:        "The total transactions to a contract matching both the configured method prefix and input prefix.",
+				ConstLabels: constLabels,
+			},
+			labelsFromMap(baseLabelsMap),
+		),
 		TransactionInputPrefixLastTransactionBlock: *prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
@@ -110,6 +120,7 @@ func NewTransactionInputPrefix(client api.ExecutionClient, log logrus.FieldLogge
 	}
 
 	prometheus.MustRegister(instance.TransactionInputPrefixTransactions)
+	prometheus.MustRegister(instance.TransactionInputPrefixMatchedTransactions)
 	prometheus.MustRegister(instance.TransactionInputPrefixLastTransactionBlock)
 	prometheus.MustRegister(instance.TransactionInputPrefixLastCheckedBlock)
 	prometheus.MustRegister(instance.TransactionInputPrefixError)
@@ -396,6 +407,9 @@ func (n *TransactionInputPrefix) getTransactions(address *AddressTransactionInpu
 			labelValues := n.getTransactionLabelValues(address, methodPrefix, inputPrefix, matched)
 
 			n.TransactionInputPrefixTransactions.WithLabelValues(labelValues...).Inc()
+			if matched {
+				n.TransactionInputPrefixMatchedTransactions.WithLabelValues(n.getBaseLabelValues(address, methodPrefix, inputPrefix)...).Inc()
+			}
 			n.TransactionInputPrefixLastTransactionBlock.WithLabelValues(labelValues...).Set(float64(blockNumber))
 		}
 	}

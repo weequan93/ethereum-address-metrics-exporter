@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"os"
+	"path/filepath"
 
 	"github.com/creasty/defaults"
 	"github.com/ethpandaops/ethereum-address-metrics-exporter/pkg/exporter"
@@ -65,7 +66,17 @@ func loadConfigFromFile(file string) (*exporter.Config, error) {
 		return nil, err
 	}
 
+	resolveStateFilePath(cfg, file)
+
 	return cfg, nil
+}
+
+func resolveStateFilePath(cfg *exporter.Config, configFile string) {
+	if cfg.GlobalConfig.StateFile == "" || filepath.IsAbs(cfg.GlobalConfig.StateFile) {
+		return
+	}
+
+	cfg.GlobalConfig.StateFile = filepath.Clean(filepath.Join(filepath.Dir(configFile), cfg.GlobalConfig.StateFile))
 }
 
 func initCommon() *exporter.Config {

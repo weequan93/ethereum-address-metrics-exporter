@@ -6,6 +6,7 @@ COPY . .
 RUN CGO_ENABLED=0 go build -o /bin/app .
 
 FROM ubuntu:latest
+WORKDIR /opt/ethereum-address-metrics-exporter
 RUN apt-get update && apt-get -y upgrade && apt-get install -y --no-install-recommends \
   libssl-dev \
   ca-certificates \

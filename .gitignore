@@ -1,5 +1,7 @@
 bin
 .vscode
 config.yaml
+data/
+ethereum-address-metrics-exporter-state.json
 __debug_bin
 ethereum-balance-metrics-exporter

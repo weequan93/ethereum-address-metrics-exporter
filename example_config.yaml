@@ -2,7 +2,7 @@ global:
   logging: "debug" # panic,fatal,warm,info,debug,trace
   metricsAddr: ":9090"
   namespace: eth_address
-  stateFile: ./ethereum-address-metrics-exporter-state.json
+  stateFile: ./data/ethereum-address-metrics-exporter-state.json
   # optional labels applied to all metrics
   labels:
     extra: label

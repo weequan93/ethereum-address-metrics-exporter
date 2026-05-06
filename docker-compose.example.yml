@@ -1,0 +1,12 @@
+services:
+  ethereum-address-metrics-exporter:
+    image: ethpandaops/ethereum-address-metrics-exporter:latest
+    command:
+      - --config
+      - /opt/ethereum-address-metrics-exporter/config.yaml
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config.yaml:/opt/ethereum-address-metrics-exporter/config.yaml:ro
+      - ./data:/opt/ethereum-address-metrics-exporter/data
+    restart: unless-stopped

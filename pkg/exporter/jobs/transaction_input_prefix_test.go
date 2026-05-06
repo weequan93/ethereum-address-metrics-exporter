@@ -119,6 +119,10 @@ func TestTransactionInputPrefixCountsMatchedAndUnmatchedTransactions(t *testing.
 		t.Fatalf("unmatched transactions = %v, want 1", got)
 	}
 
+	if got := testutil.ToFloat64(job.TransactionInputPrefixMatchedTransactions.WithLabelValues(baseLabels...)); got != 1 {
+		t.Fatalf("matched-only transactions = %v, want 1", got)
+	}
+
 	if got := testutil.ToFloat64(job.TransactionInputPrefixLastCheckedBlock.WithLabelValues(baseLabels...)); got != 2 {
 		t.Fatalf("last checked block = %v, want 2", got)
 	}
@@ -135,6 +139,10 @@ func TestTransactionInputPrefixCountsMatchedAndUnmatchedTransactions(t *testing.
 
 	if got := testutil.ToFloat64(job.TransactionInputPrefixTransactions.WithLabelValues(falseLabels...)); got != 1 {
 		t.Fatalf("unmatched transactions after second tick = %v, want 1", got)
+	}
+
+	if got := testutil.ToFloat64(job.TransactionInputPrefixMatchedTransactions.WithLabelValues(baseLabels...)); got != 1 {
+		t.Fatalf("matched-only transactions after second tick = %v, want 1", got)
 	}
 }
 
@@ -191,6 +199,11 @@ func TestTransactionInputPrefixMatchesDecodedBytesArgument(t *testing.T) {
 
 	if got := testutil.ToFloat64(job.TransactionInputPrefixTransactions.WithLabelValues(falseLabels...)); got != 1 {
 		t.Fatalf("unmatched decoded bytes transactions = %v, want 1", got)
+	}
+
+	baseLabels := job.getBaseLabelValues(address, "0xaaaaaaaa", "0x30")
+	if got := testutil.ToFloat64(job.TransactionInputPrefixMatchedTransactions.WithLabelValues(baseLabels...)); got != 1 {
+		t.Fatalf("matched-only decoded bytes transactions = %v, want 1", got)
 	}
 }
 
